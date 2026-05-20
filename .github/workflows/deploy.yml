@@ -1,0 +1,35 @@
+name: Deploy Node API
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            echo "Updating Node API..."
+
+            docker stop node-api || true
+            docker rm node-api || true
+
+            rm -rf ~/node-app
+            git clone https://github.com/${{ github.repository }}.git ~/node-app
+
+            cd ~/node-app
+
+            docker build -t node-api .
+
+            docker run -d -p 3000:3000 --name node-api node-api
